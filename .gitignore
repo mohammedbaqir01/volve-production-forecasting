@@ -1,6 +1,5 @@
 # Data
 *.csv
-*.xlsx
 *.parquet
 
 
