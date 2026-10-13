@@ -13,3 +13,6 @@ venv/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Generated model binaries
+models/*.pkl

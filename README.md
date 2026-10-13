@@ -1,92 +1,60 @@
-# Volve Bore Oil Production Forecasting
+# Volve Production Forecasting
 
-A time-series forecasting project for daily bore oil production from the Volve field. The notebook explores the data and compares ARIMA, XGBoost, and LSTM approaches. Reusable data, feature, modeling, evaluation, and plotting functions live in `src/`.
+A reproducible Python workflow for forecasting daily bore-oil production at the Volve field. It compares ARIMA, XGBoost, and LSTM models using a chronological holdout.
 
-## Project structure
+![Daily bore-oil production](figures/02_daily_bore_oil_production.png)
 
-```text
-.
-├── data/
-│   └── Volve production data.xlsx
-├── figures/                   # Generated forecast and diagnostic plots
-├── models/                    # Serialized fitted models
-├── notebooks/
-│   └── time_series.ipynb      # Exploration, diagnostics, and model comparison
-├── src/
-│   ├── data/                  # Workbook loading and data preparation
-│   ├── evaluation/            # Regression metrics
-│   ├── features/              # Lag feature creation
-│   ├── modeling/              # ARIMA, XGBoost, and LSTM
-│   ├── visualization/         # Forecast plot helpers
-│   ├── utils/                 # Artifact saving
-│   └── run_pipeline.py        # End-to-end training entry point
-└── requirements.txt
-```
+## Quick start
 
-## Setup
-
-Use Python 3.10 or later. From the project root, install the dependencies:
-
-```bash
-python -m venv .venv
-```
-
-Activate the environment, then run:
+Use Python 3.10–3.12. Install dependencies and run from the repository root:
 
 ```bash
 python -m pip install -r requirements.txt
+python run_pipeline.py
 ```
 
-The pipeline expects `data/Volve production data.xlsx`. The workbook must include a `Daily Production Data` sheet with `DATEPRD`, `NPD_WELL_BORE_NAME`, `FLOW_KIND`, and `BORE_OIL_VOL` columns, along with the numeric fields used during preparation.
+The included workbook is `data/Volve production data.xlsx`, sourced from [Equinor's Volve field dataset](https://www.equinor.com/energy/volve-data-sharing). The dataset has terms separate from this repository's code license; follow Equinor's attribution and reuse requirements. The pipeline writes forecast plots to `figures/` and fitted model artifacts to `models/`.
 
-## Run the forecasting pipeline
-
-From the project root:
+Override paths, split settings, and forecast windows as needed:
 
 ```bash
-python -m src.run_pipeline
+python run_pipeline.py --help
+python run_pipeline.py --data-path path/to/workbook.xlsx --test-fraction 0.15 --lags 30 --arima-horizon 30
 ```
 
-The pipeline selects production-only records for well `15/9-F-12`, sorts them by date, and reserves the latest 15% of records as the test partition. It removes non-positive oil-volume rows and the `BORE_WI_VOL` field, then fits a median imputer on the training partition and applies it to the test partition.
+The default train and validation dates match the included Volve dataset. Adjust `--train-end`, `--validation-start`, and `--validation-end` when using data with different coverage.
 
-The default run saves model artifacts in `models/` and forecast comparison plots in `figures/`. The returned and printed metrics are MAE, RMSE, and R².
+## Models and evaluation
 
-### Models
+- **ARIMA (3, 1, 2):** forecasts a fixed 30-day horizon from the end of training by default.
+- **XGBoost:** uses the notebook's Optuna-selected parameters and previous 30 observed values; validation RMSE controls early stopping.
+- **LSTM:** uses the same lag window as a sequence; feature and target scalers are fitted on training data only, and validation loss controls early stopping.
 
-- **ARIMA:** fits ARIMA(3, 1, 2) on the training oil-volume series and forecasts up to the next 30 daily observations.
-- **XGBoost:** uses the previous 30 observed oil-volume values as lag features. The estimator uses 500 trees, learning rate 0.05, and maximum depth 4.
-- **LSTM:** receives the same 30 lag values as a one-feature sequence. Input and target scalers are fitted on training data; validation loss controls early stopping.
+XGBoost and LSTM scores measure **rolling one-step-ahead forecasts**: each test prediction uses actual values from earlier test dates. ARIMA predicts a fixed horizon without those updates, so its metrics use a different forecast protocol and are not directly comparable.
 
-## Evaluation notes
+The data split is chronological. Numeric missing values are imputed with medians learned from training data. Non-positive oil-volume rows are excluded during preparation.
 
-The lag-based XGBoost and LSTM test features use actual observations from earlier dates in the test period. Their scores therefore describe **rolling one-step-ahead forecasts**, where the latest actual value is available before predicting the next date. ARIMA forecasts a fixed horizon from the end of training. These evaluation protocols differ, so compare the metrics with that distinction in mind.
+## Forecast plots
 
-The train and validation date windows for XGBoost and LSTM are currently specified in `src/run_pipeline.py` to match the notebook. If the dataset’s date coverage changes, update those windows before running the pipeline.
+The notebook produces the following model comparisons:
 
-## Figures
+| Model | Figure |
+| --- | --- |
+| ARIMA | [Forecast vs. actual](figures/10_arima_forecast_vs_actual.png) |
+| XGBoost | [Forecast](figures/12_xgboost_forecast.png) |
+| LSTM | [Forecast vs. actual](figures/13_lstm_forecast_vs_actual.png) |
 
-The production history below shows the decline and day-to-day variation in the selected well's oil volume.
+## Repository layout
 
-![Daily bore oil production for well 15/9-F-12](figures/02_daily_bore_oil_production.png)
+- `notebooks/time_series.ipynb` — exploration, diagnostics, and model comparison.
+- `src/` — reusable loading, feature, modeling, evaluation, and plotting modules.
+- `run_pipeline.py` — command-line pipeline entry point.
+- `data/` — included Volve source workbook.
+- `figures/` — notebook diagnostic and forecast plots.
+- `models/` — local model outputs (ignored by Git).
 
-The forecast plots compare actual production with each model's predictions on its test window. XGBoost and LSTM use rolling one-step-ahead predictions, while ARIMA forecasts a fixed horizon from the end of the training period.
+## Development
 
-### ARIMA
+GitHub Actions runs Ruff lint checks on pushes and pull requests.
 
-![ARIMA forecast compared with actual bore oil production](figures/arima_forecast_vs_actual.png)
-
-### XGBoost
-
-![XGBoost forecast compared with actual bore oil production](figures/xgboost_forecast_vs_actual.png)
-
-### LSTM
-
-![LSTM forecast compared with actual bore oil production](figures/lstm_forecast_vs_actual.png)
-
-## Notebook
-
-Open `notebooks/time_series.ipynb` for the documented exploratory workflow, time-series diagnostics, visualizations, and model cells. Run it from top to bottom because later cells depend on dataframes and fitted objects created earlier. The workbook path near the beginning of the notebook may need to be adjusted for your machine.
-
-## Source modules
-
-See [`src/README.md`](src/README.md) for a module-by-module guide and run instructions. The `run_pipeline` function in `src/run_pipeline.py` also accepts custom workbook, model-output, and figure-output paths.
+For the documented exploratory workflow, open `notebooks/time_series.ipynb`. See [`src/README.md`](src/README.md) for module details.

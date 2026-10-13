@@ -10,4 +10,4 @@ The notebook remains the exploratory record. Reusable pieces from its production
 - `run_pipeline.py` connects data prep, training, evaluation, and artifact/figure saving.
 - `utils/artifact_io.py` is the existing model artifact helper.
 
-From the repository root, run `python -m src.run_pipeline`. The workbook defaults to `data/Volve production data.xlsx`; saved models go to `models/`, and forecast plots go to `figures/`.
+From the repository root, run `python run_pipeline.py`. Use `python run_pipeline.py --help` to customize workbook/output paths, test fraction, lag window, ARIMA horizon, and train/validation date windows. The defaults match the included workbook; update the date windows for other datasets.

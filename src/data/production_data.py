@@ -8,20 +8,27 @@ PRODUCTION_WELL = "15/9-F-12"
 OIL_COLUMN = "BORE_OIL_VOL"
 
 
-def load_production_data(workbook_path: str | Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def load_production_data(
+    workbook_path: str | Path, test_fraction: float = 0.15
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load and chronologically split the target production well.
 
     Args:
         workbook_path: Path to the Volve Excel workbook. The workbook must contain a
             ``Daily Production Data`` sheet.
+        test_fraction: Fraction of the latest sorted records reserved for testing.
 
     Returns:
         A pair of data frames (training, test), indexed by ``DATEPRD``. Only
         well ``15/9-F-12`` is retained, and the last 15% of its sorted records
         form the test partition.
     """
-    workbook_sheets = pd.read_excel(workbook_path, sheet_name=None)
-    daily_production_data = workbook_sheets["Daily Production Data"]
+    if not 0 < test_fraction < 1:
+        raise ValueError("test_fraction must be between 0 and 1.")
+
+    daily_production_data = pd.read_excel(
+        workbook_path, sheet_name="Daily Production Data"
+    )
 
     production_only_well_names = (
         daily_production_data.groupby("NPD_WELL_BORE_NAME")["FLOW_KIND"]
@@ -37,7 +44,7 @@ def load_production_data(workbook_path: str | Path) -> tuple[pd.DataFrame, pd.Da
     well_df["DATEPRD"] = pd.to_datetime(well_df["DATEPRD"])
     well_df = well_df.sort_values("DATEPRD").set_index("DATEPRD")
 
-    train_test_split_index = int(len(well_df) * 0.85)
+    train_test_split_index = int(len(well_df) * (1 - test_fraction))
     train_df = well_df.iloc[:train_test_split_index].copy()
     test_df = well_df.iloc[train_test_split_index:].copy()
     return train_df, test_df
