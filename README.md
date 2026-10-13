@@ -30,7 +30,7 @@ The default train and validation dates match the included Volve dataset. Adjust 
 - **XGBoost:** uses the notebook's Optuna-selected parameters and previous 30 observed values; validation RMSE controls early stopping.
 - **LSTM:** uses the same lag window as a sequence; feature and target scalers are fitted on training data only, and validation loss controls early stopping.
 
-XGBoost and LSTM scores measure **rolling one-step-ahead forecasts**: each test prediction uses actual values from earlier test dates. ARIMA predicts a fixed horizon without those updates, so its metrics use a different forecast protocol and are not directly comparable.
+XGBoost and LSTM scores measure **rolling one-step-ahead forecasts**: the test window starts with the final training observations, and each later prediction uses actual values through the previous date. ARIMA predicts a fixed horizon without those updates, so its metrics use a different forecast protocol and are not directly comparable.
 
 The data split is chronological. Numeric missing values are imputed with medians learned from training data. Zero-production days are retained as valid daily observations.
 

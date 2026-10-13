@@ -3,6 +3,8 @@
 import argparse
 from pathlib import Path
 
+import pandas as pd
+
 from src.data.production_data import load_production_data, prepare_production_data
 from src.evaluation.metrics import regression_metrics
 from src.features.lag_features import add_lag_features
@@ -43,7 +45,9 @@ def run_pipeline(
         that overlap the available test partition.
     """
     train_df, test_df = load_production_data(data_path, test_fraction=test_fraction)
-    train_df, test_df, _ = prepare_production_data(train_df, test_df)
+    train_df, test_df, _ = prepare_production_data(
+        train_df, test_df, fit_end=train_end
+    )
 
     output_dir = Path(output_dir)
     figures_dir = Path(figures_dir)
@@ -62,9 +66,19 @@ def run_pipeline(
     )
 
     train_df, lag_feature_names = add_lag_features(train_df, n=n_lags)
-    test_df, _ = add_lag_features(test_df, n=n_lags)
-    train_df.dropna(inplace=True)
-    test_df.dropna(inplace=True)
+    test_lag_source = pd.concat(
+        [
+            train_df[["BORE_OIL_VOL"]].tail(n_lags),
+            test_df[["BORE_OIL_VOL"]],
+        ]
+    )
+    test_lag_source, _ = add_lag_features(test_lag_source, n=n_lags)
+    test_df = test_df.copy()
+    test_df[lag_feature_names] = test_lag_source.loc[
+        test_df.index, lag_feature_names
+    ]
+    train_df.dropna(subset=[*lag_feature_names, "BORE_OIL_VOL"], inplace=True)
+    test_df.dropna(subset=[*lag_feature_names, "BORE_OIL_VOL"], inplace=True)
 
     x_train = train_df.loc[:train_end, lag_feature_names]
     y_train = train_df.loc[:train_end, "BORE_OIL_VOL"]
