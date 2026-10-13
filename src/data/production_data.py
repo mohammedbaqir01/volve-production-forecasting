@@ -68,7 +68,6 @@ def prepare_production_data(
             frame.drop("BORE_WI_VOL", axis=1, inplace=True)
         frame.drop(frame[frame[OIL_COLUMN] <= 0].index, inplace=True)
 
-    train_df.dropna(subset=["AVG_CHOKE_SIZE_P"], inplace=True)
 
     numeric_cols = train_df.select_dtypes(include="number").columns
     imputer = SimpleImputer(strategy="median")

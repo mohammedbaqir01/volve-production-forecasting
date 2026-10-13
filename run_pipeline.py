@@ -43,11 +43,10 @@ def run_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # ARIMA uses the cleaned training series and predicts the next 30 days.
-    arima_model, arima_predictions = fit_arima_forecast(train_df)
+    arima_predictions = fit_arima_forecast(train_df)
     arima_actual = test_df["BORE_OIL_VOL"].reindex(arima_predictions.index).dropna()
     arima_predictions = arima_predictions.reindex(arima_actual.index)
     arima_metrics = regression_metrics(arima_actual, arima_predictions)
-    save_artifact(arima_model, output_dir / "arima_production_forecasting_model.pkl")
     save_forecast_plot(
         arima_actual,
         arima_predictions,
@@ -98,7 +97,7 @@ def run_pipeline(
         "LSTM Forecast vs. Actual Bore Oil Production",
     )
     return {
-        "arima": {"model": arima_model, "metrics": arima_metrics},
+        "arima": {"model": arima_predictions, "metrics": arima_metrics},
         "xgboost": {"model": xgboost_model, "metrics": xgb_metrics},
         "lstm": {"model": lstm_model, "history": history, "metrics": lstm_metrics},
     }

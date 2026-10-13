@@ -14,7 +14,7 @@ def fit_lstm(
     n_lags: int,
     epochs: int = 100,
     batch_size: int = 16,
-    patience: int = 30,
+    patience: int = 45,
 ):
     """Train the notebook's LSTM and produce predictions in target units.
 
@@ -67,7 +67,7 @@ def fit_lstm(
         batch_size=batch_size,
         shuffle=False,
         callbacks=[early_stopping],
-        verbose=1,
+        verbose=10,
     )
     predictions_scaled = model.predict(x_test_lstm, verbose=0)
     lstm_predictions = target_scaler.inverse_transform(predictions_scaled).ravel()

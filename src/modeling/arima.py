@@ -25,10 +25,10 @@ def fit_arima_forecast(
     training_oil_volume = train_df[target].reset_index(drop=True)
     model = sm.tsa.ARIMA(training_oil_volume, order=order)
     arima_model_fit = model.fit()
-    xgboost_predictions = arima_model_fit.forecast(steps=steps)
-    xgboost_predictions.index = pd.date_range(
+    arima_model_predictions = arima_model_fit.forecast(steps=steps)
+    arima_model_predictions.index = pd.date_range(
         start=train_df.index[-1] + pd.Timedelta(days=1),
         periods=steps,
         freq="D",
     )
-    return arima_model_fit, xgboost_predictions
+    return arima_model_predictions

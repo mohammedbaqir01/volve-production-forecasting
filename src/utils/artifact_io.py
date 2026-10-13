@@ -13,5 +13,5 @@ def save_artifact(model, artifact_path):
         Creates the destination parent folder if necessary and writes the
         serialized artifact to disk.
     """
-    os.makedirs(os.artifact_path.dirname(artifact_path), exist_ok=True)
+    os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
     joblib.dump(model, artifact_path)
