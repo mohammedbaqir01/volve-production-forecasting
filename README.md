@@ -63,6 +63,26 @@ The lag-based XGBoost and LSTM test features use actual observations from earlie
 
 The train and validation date windows for XGBoost and LSTM are currently specified in `src/run_pipeline.py` to match the notebook. If the dataset’s date coverage changes, update those windows before running the pipeline.
 
+## Figures
+
+The production history below shows the decline and day-to-day variation in the selected well's oil volume.
+
+![Daily bore oil production for well 15/9-F-12](figures/02_daily_bore_oil_production.png)
+
+The forecast plots compare actual production with each model's predictions on its test window. XGBoost and LSTM use rolling one-step-ahead predictions, while ARIMA forecasts a fixed horizon from the end of the training period.
+
+### ARIMA
+
+![ARIMA forecast compared with actual bore oil production](figures/arima_forecast_vs_actual.png)
+
+### XGBoost
+
+![XGBoost forecast compared with actual bore oil production](figures/xgboost_forecast_vs_actual.png)
+
+### LSTM
+
+![LSTM forecast compared with actual bore oil production](figures/lstm_forecast_vs_actual.png)
+
 ## Notebook
 
 Open `notebooks/time_series.ipynb` for the documented exploratory workflow, time-series diagnostics, visualizations, and model cells. Run it from top to bottom because later cells depend on dataframes and fitted objects created earlier. The workbook path near the beginning of the notebook may need to be adjusted for your machine.
