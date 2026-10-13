@@ -13,7 +13,7 @@ python -m pip install -r requirements.txt
 python run_pipeline.py
 ```
 
-The included workbook is `data/Volve production data.xlsx`, sourced from [Equinor's Volve field dataset](https://www.equinor.com/energy/volve-data-sharing). The dataset has terms separate from this repository's code license; follow Equinor's attribution and reuse requirements. The pipeline writes forecast plots to `figures/` and fitted model artifacts to `models/`.
+The included workbook is `data/Volve production data.xlsx`, sourced from [Equinor's Volve field dataset](https://www.equinor.com/energy/volve-data-sharing). The dataset has terms separate from this repository's code license; follow Equinor's attribution and reuse requirements. The pipeline writes forecast plots to `figures/` and fitted model artifacts to `models/`. The LSTM model uses Keras' native `.keras` format; its scalers and lag metadata are stored separately.
 
 Override paths, split settings, and forecast windows as needed:
 
@@ -26,13 +26,12 @@ The default train and validation dates match the included Volve dataset. Adjust 
 
 ## Models and evaluation
 
-- **ARIMA (3, 1, 2):** forecasts a fixed 30-day horizon from the end of training by default.
-- **XGBoost:** uses the notebook's Optuna-selected parameters and previous 30 observed values; validation RMSE controls early stopping.
-- **LSTM:** uses the same lag window as a sequence; feature and target scalers are fitted on training data only, and validation loss controls early stopping.
+- **ARIMA (3, 1, 2):** forecasts 30 days from the end of pre-test data; missing dates stay missing, not zero.
+- **XGBoost and LSTM:** use 30 previous recorded values. Scalers fit on training data; validation controls early stopping.
 
-XGBoost and LSTM scores measure **rolling one-step-ahead forecasts**: the test window starts with the final training observations, and each later prediction uses actual values through the previous date. ARIMA predicts a fixed horizon without those updates, so its metrics use a different forecast protocol and are not directly comparable.
+XGBoost and LSTM use **rolling one-step-ahead forecasts**: each test prediction uses actual values through the prior test date. Lags count recorded rows; the historical workbook has missing calendar dates, though the test period is daily and continuous.
 
-The data split is chronological. Numeric missing values are imputed with medians learned from training data. Zero-production days are retained as valid daily observations.
+The chronological split is by recorded rows. Predictor gaps use medians learned through the training cutoff; target values are never imputed, and zero-production days are kept. Scores are not directly comparable: ARIMA uses all pre-test data and the first 30 test days, while XGBoost/LSTM fit through 2014-07-15, validate on later pre-test data, and score the full test period.
 
 ## Forecast plots
 

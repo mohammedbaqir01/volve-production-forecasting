@@ -16,3 +16,4 @@ venv/
 
 # Generated model binaries
 models/*.pkl
+models/*.keras

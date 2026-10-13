@@ -30,8 +30,8 @@ def run_pipeline(
 
     The workbook is loaded and cleaned, ARIMA forecasts the next 30 days, and
     XGBoost/LSTM are trained on the notebook's chronological 30-lag windows.
-    Fitted estimators, LSTM scalers, and forecast figures are saved to the
-    requested folders.
+    Fitted estimators, the native Keras model plus LSTM preprocessing metadata,
+    and forecast figures are saved to the requested folders.
 
     Args:
         data_path: Volve workbook path; defaults to the repository data folder.
@@ -107,9 +107,14 @@ def run_pipeline(
         n_lags=len(lag_feature_names),
     )
     lstm_metrics = regression_metrics(y_test, lstm_predictions)
+    lstm_model.save(output_dir / "lstm_production_forecasting_model.keras")
     save_artifact(
-        {"model": lstm_model, "x_scaler": feature_scaler, "y_scaler": target_scaler, "lags": lag_feature_names},
-        output_dir / "lstm_production_forecasting_model.pkl",
+        {
+            "x_scaler": feature_scaler,
+            "y_scaler": target_scaler,
+            "lags": lag_feature_names,
+        },
+        output_dir / "lstm_production_forecasting_preprocessing.pkl",
     )
     save_forecast_plot(
         y_test,
