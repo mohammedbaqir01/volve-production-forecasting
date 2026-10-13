@@ -5,7 +5,6 @@ from sklearn.impute import SimpleImputer
 
 
 PRODUCTION_WELL = "15/9-F-12"
-OIL_COLUMN = "BORE_OIL_VOL"
 
 
 def load_production_data(
@@ -20,8 +19,8 @@ def load_production_data(
 
     Returns:
         A pair of data frames (training, test), indexed by ``DATEPRD``. Only
-        well ``15/9-F-12`` is retained, and the last 15% of its sorted records
-        form the test partition.
+        well ``15/9-F-12`` is retained, and the last ``test_fraction`` portion
+        of its sorted records forms the test partition.
     """
     if not 0 < test_fraction < 1:
         raise ValueError("test_fraction must be between 0 and 1.")
@@ -51,17 +50,22 @@ def load_production_data(
 
 
 def prepare_production_data(
-    train_df: pd.DataFrame, test_df: pd.DataFrame
+    train_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    fit_end: str | pd.Timestamp | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, SimpleImputer]:
     """Clean production partitions and impute numeric values without test leakage.
 
     The function copies its inputs, removes ``BORE_WI_VOL`` when present,
-    excludes non-positive oil production, drops training rows missing choke
-    size, and fits a median imputer on training numeric columns only.
+    retains zero-production days, and fits a median imputer on training
+    numeric columns only. When ``fit_end`` is provided, only rows through that
+    date are used to learn medians; later rows in the training partition can
+    then serve as a validation window without influencing preprocessing.
 
     Args:
         train_df: Chronological training partition.
         test_df: Held-out partition with matching numeric feature columns.
+        fit_end: Optional last date included when fitting the imputer.
 
     Returns:
         Cleaned training and test data frames, followed by the fitted
@@ -73,11 +77,13 @@ def prepare_production_data(
     for frame in (train_df, test_df):
         if "BORE_WI_VOL" in frame.columns:
             frame.drop("BORE_WI_VOL", axis=1, inplace=True)
-        frame.drop(frame[frame[OIL_COLUMN] <= 0].index, inplace=True)
-
 
     numeric_cols = train_df.select_dtypes(include="number").columns
+    fit_data = train_df if fit_end is None else train_df.loc[:fit_end]
+    if fit_data.empty:
+        raise ValueError("fit_end selects no rows from the training partition.")
     imputer = SimpleImputer(strategy="median")
-    train_df[numeric_cols] = imputer.fit_transform(train_df[numeric_cols])
+    imputer.fit(fit_data[numeric_cols])
+    train_df[numeric_cols] = imputer.transform(train_df[numeric_cols])
     test_df[numeric_cols] = imputer.transform(test_df[numeric_cols])
     return train_df, test_df, imputer
