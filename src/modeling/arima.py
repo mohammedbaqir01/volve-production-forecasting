@@ -8,25 +8,30 @@ def fit_arima_forecast(
     order: tuple[int, int, int] = (3, 1, 2),
     steps: int = 30,
 ):
-    """Fit an ARIMA model and date-index its daily forecasts.
+    """Fit a daily ARIMA model and preserve calendar gaps as missing observations.
 
     Args:
-        train_df: Time-indexed training observations containing ``target``.
+        train_df: Training observations indexed by unique, increasing dates and
+            containing ``target``. Missing calendar days are represented as
+            missing observations rather than as zero production.
         target: Column to forecast.
         order: ARIMA ``(p, d, q)`` order; defaults to the notebook's setting.
         steps: Number of future daily observations to forecast.
 
     Returns:
         A forecast series indexed by daily timestamps immediately after the
-        final training date.
+        final training date. The state-space likelihood handles missing
+        calendar-day observations in the training series.
     """
-    training_oil_volume = train_df[target].reset_index(drop=True)
+    if not isinstance(train_df.index, pd.DatetimeIndex):
+        raise TypeError("train_df must have a DatetimeIndex for daily ARIMA.")
+    if not train_df.index.is_monotonic_increasing or not train_df.index.is_unique:
+        raise ValueError("ARIMA training dates must be unique and increasing.")
+    if steps < 1:
+        raise ValueError("steps must be a positive integer.")
+
+    training_oil_volume = train_df[target].asfreq("D")
     model = sm.tsa.ARIMA(training_oil_volume, order=order)
     arima_model_fit = model.fit()
     arima_model_predictions = arima_model_fit.forecast(steps=steps)
-    arima_model_predictions.index = pd.date_range(
-        start=train_df.index[-1] + pd.Timedelta(days=1),
-        periods=steps,
-        freq="D",
-    )
     return arima_model_predictions
