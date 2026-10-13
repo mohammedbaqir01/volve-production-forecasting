@@ -5,7 +5,6 @@ from sklearn.impute import SimpleImputer
 
 
 PRODUCTION_WELL = "15/9-F-12"
-OIL_COLUMN = "BORE_OIL_VOL"
 
 
 def load_production_data(
@@ -20,8 +19,8 @@ def load_production_data(
 
     Returns:
         A pair of data frames (training, test), indexed by ``DATEPRD``. Only
-        well ``15/9-F-12`` is retained, and the last 15% of its sorted records
-        form the test partition.
+        well ``15/9-F-12`` is retained, and the last ``test_fraction`` portion
+        of its sorted records forms the test partition.
     """
     if not 0 < test_fraction < 1:
         raise ValueError("test_fraction must be between 0 and 1.")
@@ -56,8 +55,8 @@ def prepare_production_data(
     """Clean production partitions and impute numeric values without test leakage.
 
     The function copies its inputs, removes ``BORE_WI_VOL`` when present,
-    excludes non-positive oil production, drops training rows missing choke
-    size, and fits a median imputer on training numeric columns only.
+    retains zero-production days, and fits a median imputer on training
+    numeric columns only.
 
     Args:
         train_df: Chronological training partition.
@@ -73,8 +72,6 @@ def prepare_production_data(
     for frame in (train_df, test_df):
         if "BORE_WI_VOL" in frame.columns:
             frame.drop("BORE_WI_VOL", axis=1, inplace=True)
-        frame.drop(frame[frame[OIL_COLUMN] <= 0].index, inplace=True)
-
 
     numeric_cols = train_df.select_dtypes(include="number").columns
     imputer = SimpleImputer(strategy="median")

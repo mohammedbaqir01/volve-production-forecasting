@@ -17,8 +17,8 @@ def fit_arima_forecast(
         steps: Number of future daily observations to forecast.
 
     Returns:
-        The fitted statsmodels result object and a forecast series indexed by
-        daily timestamps immediately after the final training date.
+        A forecast series indexed by daily timestamps immediately after the
+        final training date.
     """
     training_oil_volume = train_df[target].reset_index(drop=True)
     model = sm.tsa.ARIMA(training_oil_volume, order=order)

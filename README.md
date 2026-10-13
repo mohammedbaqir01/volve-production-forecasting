@@ -32,7 +32,7 @@ The default train and validation dates match the included Volve dataset. Adjust 
 
 XGBoost and LSTM scores measure **rolling one-step-ahead forecasts**: each test prediction uses actual values from earlier test dates. ARIMA predicts a fixed horizon without those updates, so its metrics use a different forecast protocol and are not directly comparable.
 
-The data split is chronological. Numeric missing values are imputed with medians learned from training data. Non-positive oil-volume rows are excluded during preparation.
+The data split is chronological. Numeric missing values are imputed with medians learned from training data. Zero-production days are retained as valid daily observations.
 
 ## Forecast plots
 

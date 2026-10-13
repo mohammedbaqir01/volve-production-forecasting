@@ -38,9 +38,9 @@ def run_pipeline(
 
     Returns:
         A mapping for ``arima``, ``xgboost``, and ``lstm``. Each entry contains
-        the fitted model and its test metrics; the LSTM entry also includes its
-        training history. ARIMA metrics use the forecast dates that overlap the
-        available test partition.
+        its forecast or fitted estimator and test metrics; the LSTM entry also
+        includes its training history. ARIMA metrics use the forecast dates
+        that overlap the available test partition.
     """
     train_df, test_df = load_production_data(data_path, test_fraction=test_fraction)
     train_df, test_df, _ = prepare_production_data(train_df, test_df)
