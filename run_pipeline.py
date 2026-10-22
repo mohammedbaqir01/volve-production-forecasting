@@ -113,6 +113,7 @@ def run_pipeline(
             "x_scaler": feature_scaler,
             "y_scaler": target_scaler,
             "lags": lag_feature_names,
+            "sequence_lags": list(reversed(lag_feature_names)),
         },
         output_dir / "lstm_production_forecasting_preprocessing.pkl",
     )

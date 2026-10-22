@@ -26,7 +26,7 @@ The default train and validation dates match the included Volve dataset. Adjust 
 
 ## Models and evaluation
 
-- **ARIMA (3, 1, 2):** forecasts 30 days from the end of pre-test data; missing dates stay missing, not zero.
+- **ARIMA baseline (3, 1, 2):** forecasts 30 days from the end of pre-test data; missing dates stay missing, not zero.
 - **XGBoost and LSTM:** use 30 previous recorded values. Scalers fit on training data; validation controls early stopping.
 
 XGBoost and LSTM use **rolling one-step-ahead forecasts**: each test prediction uses actual values through the prior test date. Lags count recorded rows; the historical workbook has missing calendar dates, though the test period is daily and continuous.

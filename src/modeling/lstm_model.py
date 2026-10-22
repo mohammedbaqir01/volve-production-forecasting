@@ -1,7 +1,8 @@
 import numpy as np
 from keras.callbacks import EarlyStopping
-from keras.layers import Dense, LSTM
+from keras.layers import Dense, Input, LSTM
 from keras.models import Sequential
+from keras.utils import set_random_seed
 from sklearn.preprocessing import StandardScaler
 
 
@@ -15,11 +16,14 @@ def fit_lstm(
     epochs: int = 100,
     batch_size: int = 16,
     patience: int = 45,
+    seed: int = 42,
 ):
     """Train the notebook's LSTM and produce predictions in target units.
 
-    Scalers are fitted only on the training data. Lag columns are reshaped to
-    ``(samples, timesteps, 1)`` and early stopping monitors validation loss.
+    Scalers are fitted only on the training data. Lag columns arrive from
+    ``lag_1`` through ``lag_n`` and are reversed before reshaping so the
+    sequence runs from oldest to newest. Early stopping monitors validation
+    loss.
 
     Args:
         x_train: Training lag matrix with ``n_lags`` columns.
@@ -33,17 +37,33 @@ def fit_lstm(
         epochs: Maximum training epochs.
         batch_size: Number of samples per gradient update.
         patience: Validation epochs without improvement before early stopping.
+        seed: Seed used to initialize Python, NumPy, and Keras random states.
 
     Returns:
         A tuple of the fitted model, Keras training history, inverse-scaled
         test predictions, fitted input scaler, and fitted target scaler.
     """
+    if n_lags < 1:
+        raise ValueError("n_lags must be a positive integer.")
+
+    x_train_values = np.asarray(x_train)
+    x_val_values = np.asarray(x_val)
+    x_test_values = np.asarray(x_test)
+    for name, values in (
+        ("x_train", x_train_values),
+        ("x_val", x_val_values),
+        ("x_test", x_test_values),
+    ):
+        if values.ndim != 2 or values.shape[1] != n_lags:
+            raise ValueError(f"{name} must have exactly {n_lags} lag columns.")
+
+    set_random_seed(seed)
     feature_scaler = StandardScaler()
     target_scaler = StandardScaler()
 
-    x_train_scaled = feature_scaler.fit_transform(x_train)
-    x_val_scaled = feature_scaler.transform(x_val)
-    x_test_scaled = feature_scaler.transform(x_test)
+    x_train_scaled = feature_scaler.fit_transform(x_train_values[:, ::-1])
+    x_val_scaled = feature_scaler.transform(x_val_values[:, ::-1])
+    x_test_scaled = feature_scaler.transform(x_test_values[:, ::-1])
     y_train_scaled = target_scaler.fit_transform(np.asarray(y_train).reshape(-1, 1))
     y_val_scaled = target_scaler.transform(np.asarray(y_val).reshape(-1, 1))
 
@@ -51,9 +71,9 @@ def fit_lstm(
     x_val_lstm = x_val_scaled.reshape(x_val_scaled.shape[0], n_lags, 1)
     x_test_lstm = x_test_scaled.reshape(x_test_scaled.shape[0], n_lags, 1)
 
-    model = Sequential()
-    model.add(LSTM(64, input_shape=(n_lags, 1)))
-    model.add(Dense(1))
+    model = Sequential(
+        [Input(shape=(n_lags, 1)), LSTM(64), Dense(1)]
+    )
     model.compile(optimizer="adam", loss="mean_squared_error")
 
     early_stopping = EarlyStopping(
