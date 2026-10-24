@@ -1,7 +1,7 @@
 # Data
 *.csv
 *.parquet
-
+scr/
 
 # Python
 __pycache__/
